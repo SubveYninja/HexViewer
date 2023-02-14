@@ -61,7 +61,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 	HDC hdc;
 	PAINTSTRUCT ps;
-	//RECT rect;
 	TEXTMETRIC tm{};
 
 	static int cxChar, cyChar, cxCaps;
