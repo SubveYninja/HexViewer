@@ -1,5 +1,6 @@
 ﻿#include <Windows.h>
 #include "Info.h"
+#include "resource.h"
 
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -8,8 +9,9 @@ const int lines = sizeof(sysmetrics) / sizeof(sysmetrics[0]);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
-	static char szAppName[] = "HelloWin";
+	static char szAppName[] = "IDR_MENU";
 	HWND hwnd;
+	HMENU hMenu;
 	MSG msg;
 	WNDCLASSEX wndclass{};
 
@@ -22,11 +24,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	wndclass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 	wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wndclass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-	wndclass.lpszMenuName = NULL;
+	wndclass.lpszMenuName = (LPCWSTR)szAppName;
 	wndclass.lpszClassName = (LPCWSTR)szAppName;
 	wndclass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
 	RegisterClassEx(&wndclass);
+
+	hMenu = LoadMenu(hInstance, L"IDR_MENU");
 
 	hwnd = CreateWindow(
 		(LPCWSTR)szAppName, // window class name 
@@ -37,7 +41,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 		CW_USEDEFAULT, // initial x size 
 		CW_USEDEFAULT, // initial y size 
 		NULL, // parent window handle 
-		NULL, // window menu handle 
+		hMenu, // window menu handle 
 		hInstance, // program instance handle 
 		NULL
 	); // creation parameters 
@@ -59,7 +63,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	PAINTSTRUCT ps;
 	//RECT rect;
 	TEXTMETRIC tm{};
-	HMENU hMenu;
 
 	static int cxChar, cyChar, cxCaps;
 	static int cyClient, cxClient, iMaxWidth;
@@ -72,23 +75,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	switch (iMsg)
 	{
-	//case WM_COMMAND:
-
-	//	hMenu = GetMenu(hwnd);
-
-	//	switch (LOWORD(wParam))
-	//	{
-	//	case :
-
-
-
-	//		break;
-	//	default:
-	//		break;
-	//	}
-
-	//	break;
-
 	case WM_CREATE:
 
 		hdc = BeginPaint(hwnd, &ps);
@@ -258,3 +244,5 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	return DefWindowProc(hwnd, iMsg, wParam, lParam);
 }
+
+
