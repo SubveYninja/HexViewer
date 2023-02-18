@@ -62,7 +62,8 @@ PBYTE pbFile;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
-	static char szAppName[] = "IDR_MENU";
+	LPCWSTR lpszAppName = L"HexViewer";
+	LPCWSTR lpszMenuName = L"IDR_MENU";
 	HWND hwnd;
 	HMENU hMenu;
 	MSG msg;
@@ -77,22 +78,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	wndclass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 	wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wndclass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-	wndclass.lpszMenuName = (LPCWSTR)szAppName;
-	wndclass.lpszClassName = (LPCWSTR)szAppName;
+	wndclass.lpszMenuName = lpszMenuName;
+	wndclass.lpszClassName = lpszAppName;
 	wndclass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
 	RegisterClassEx(&wndclass);
 
-	hMenu = LoadMenu(hInstance, L"IDR_MENU");
+	hMenu = LoadMenu(hInstance, lpszMenuName);
 
 	hwnd = CreateWindow(
-		(LPCWSTR)szAppName, // window class name 
-		L"The Hello Program", // window caption 
+		lpszAppName, // window class name 
+		(LPCWSTR)L"TEST", // window caption 
 		WS_OVERLAPPEDWINDOW | WS_VSCROLL, // window style 
 		CW_USEDEFAULT, // initial x position 
 		CW_USEDEFAULT, // initial y position 
-		CW_USEDEFAULT, // initial x size 
-		CW_USEDEFAULT, // initial y size 
+		ixStartupWidth, // initial x size 
+		iyStartupHeight, // initial y size 
 		NULL, // parent window handle 
 		hMenu, // window menu handle 
 		hInstance, // program instance handle 
@@ -126,6 +127,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 
 	return msg.wParam;
 }
+
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {
 	HDC hdc;
@@ -142,11 +145,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	static int cxChar, cyChar, cxCaps;
 	static int cyClient, cxClient, iMaxWidth;
-	static int iVscrollPos, iVscrollMax, iHscrollPos, iHscrollMax;
+	static int iVscrollPos, iHscrollPos;
 
 	wchar_t szBuffer[10]{};
 
-	int iVscrollInc, iHscrollInc;
 	int iPaintBeg, iPaintEnd;
 
 	switch (iMsg)
@@ -211,13 +213,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 	case WM_SIZE:
 
 		cyClient = HIWORD(lParam);
-		cxClient = HIWORD(lParam);
+		cxClient = LOWORD(lParam);
 
-		iVscrollMax = max(0, qwFileSizeConst / 16 + 2 - cyClient / cyChar);
-		iVscrollPos = min(iVscrollPos, iVscrollMax);
+		MoveWindow(hwndData, 2 * cxChar, 2 * cyChar, ixStartupDataWidth, cyClient - 4 * cyChar, TRUE);
 
-		SetScrollRange(hwnd, SB_VERT, 0, iVscrollMax, FALSE);
-		SetScrollPos(hwnd, SB_VERT, iVscrollPos, TRUE);
+		GetClientRect(hwndData, &rectData);
 
 		si.cbSize = sizeof(si);
 		si.fMask = SIF_RANGE | SIF_PAGE;
@@ -226,8 +226,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		si.nPage = rectData.bottom / cyChar;
 		SetScrollInfo(hwnd, SB_VERT, &si, TRUE);
 
-		SetScrollRange(hwnd, SB_HORZ, 0, iHscrollMax, FALSE);
-		SetScrollPos(hwnd, SB_HORZ, iHscrollPos, TRUE);
+		si.cbSize = sizeof(si);
+		si.fMask = SIF_RANGE | SIF_PAGE;
+		si.nMin = 0;
+		si.nMax = 2 + iMaxWidth / cxChar;
+		si.nPage = (cxClient - cxChar * 2) / cxChar;
+		SetScrollInfo(hwnd, SB_HORZ, &si, TRUE);
 
 		return 0;
 
@@ -259,56 +263,63 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_VSCROLL:
 
+		si.cbSize = sizeof(si);
+		si.fMask = SIF_ALL;
+
+		GetScrollInfo(hwnd, SB_VERT, &si);
+		iVscrollPos = si.nPos;
+
 		switch (LOWORD(wParam))
 		{
 		case SB_TOP:
 
-			iVscrollInc = -iVscrollPos;
+			si.nPos = si.nMin;
 			break;
 
 		case SB_BOTTOM:
 
-			iVscrollInc = iVscrollMax - iVscrollPos;
+			si.nPos = si.nMax;
 			break;
 
 		case SB_LINEUP:
 
-			iVscrollInc = -1;
+			si.nPos -= 1;
 			break;
 
 		case SB_LINEDOWN:
 
-			iVscrollInc = 1;
+			si.nPos += 1;
 			break;
 
 		case SB_PAGEUP:
 
-			iVscrollInc = min(-1, -cyClient / cyChar);
+			si.nPos -= si.nPage;
 			break;
 
 		case SB_PAGEDOWN:
 
-			iVscrollInc = max(1, cyClient / cyChar);
+			si.nPos += si.nPage;
 			break;
 
 		case SB_THUMBTRACK:
 
-			iVscrollInc = HIWORD(wParam) - iVscrollPos;
+			si.nPos = si.nTrackPos;
 			break;
 
 		default:
-
-			iVscrollInc = 0;
 			break;
 		}
 
-		iVscrollInc = max(-iVscrollPos, min(iVscrollInc, iVscrollMax - iVscrollPos));
+		si.fMask = SIF_POS;
+		SetScrollInfo(hwnd, SB_VERT, &si, TRUE);
+		GetScrollInfo(hwnd, SB_VERT, &si);
 
-		if (iVscrollInc != 0)
+		if (si.nPos != iVscrollPos)
 		{
-			iVscrollPos += iVscrollInc;
-			ScrollWindow(hwnd, 0, -cyChar * iVscrollInc, NULL, NULL);
-			SetScrollPos(hwnd, SB_VERT, iVscrollPos, TRUE);
+			GetClientRect(hwnd, &rectWnd);
+			InvalidateRect(hwnd, &rectWnd, TRUE);
+
+			ScrollWindow(hwndData, 0, cyChar * (iVscrollPos - si.nPos), NULL, NULL);
 			UpdateWindow(hwnd);
 		}
 
@@ -316,46 +327,53 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_HSCROLL:
 
+		si.cbSize = sizeof(si);
+		si.fMask = SIF_ALL;
+
+		GetScrollInfo(hwnd, SB_HORZ, &si);
+		iHscrollPos = si.nPos;
+
 		switch (LOWORD(wParam))
 		{
-		case SB_LINEUP:
+		case SB_LINELEFT:
 
-			iHscrollInc = -1;
+			si.nPos -= 1;
 			break;
 
-		case SB_LINEDOWN:
+		case SB_LINERIGHT:
 
-			iHscrollInc = 1;
+			si.nPos += 1;
 			break;
 
-		case SB_PAGEUP:
+		case SB_PAGELEFT:
 
-			iHscrollInc = min(-1, -cxClient / cxChar);
+			si.nPos -= si.nPage;
 			break;
 
-		case SB_PAGEDOWN:
+		case SB_PAGERIGHT:
 
-			iHscrollInc = max(1, cxClient / cxChar);
+			si.nPos += si.nPage;
 			break;
 
 		case SB_THUMBTRACK:
 
-			iHscrollInc = HIWORD(wParam) - iHscrollPos;
+			si.nPos = si.nTrackPos;
 			break;
 
 		default:
-
-			iHscrollInc = 0;
 			break;
 		}
 
-		iHscrollInc = max(-iHscrollPos, min(iHscrollInc, iHscrollMax - iHscrollPos));
+		si.fMask = SIF_POS;
+		SetScrollInfo(hwnd, SB_HORZ, &si, TRUE);
+		GetScrollInfo(hwnd, SB_HORZ, &si);
 
-		if (iHscrollInc != 0)
+		if (si.nPos != iHscrollPos)
 		{
-			iHscrollPos += iHscrollInc;
-			ScrollWindow(hwnd, -cxChar * iHscrollInc, 0, NULL, NULL);
-			SetScrollPos(hwnd, SB_HORZ, iHscrollPos, TRUE);
+			GetClientRect(hwnd, &rectWnd);
+			InvalidateRect(hwnd, &rectWnd, TRUE);
+
+			ScrollWindow(hwndData, cxChar * (iHscrollPos - si.nPos), 0, NULL, NULL);
 			UpdateWindow(hwnd);
 		}
 
@@ -388,11 +406,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		iPaintBeg = max(0, iVscrollPos + ps.rcPaint.top / cyChar);
 		iPaintEnd = min(qwFileSizeConst - 1, iVscrollPos + ps.rcPaint.bottom / cyChar);
 
-		for (int x, y, i = iPaintBeg; i < iPaintEnd; i++)
+		for (int x, y, i = iPaintBeg; i <= iPaintEnd; i++)
 		{
 
 			x = cxChar * (1 - iHscrollPos);
-			y = cyChar * (1 - iVscrollPos + i);
+			y = cyChar * (i - iVscrollPos);
 
 			//SetTextAlign(hdc, TA_LEFT | TA_TOP);
 			TextOut(hdc, x, y, szBuffer, wsprintf(szBuffer, L"%08X", dwByte));
