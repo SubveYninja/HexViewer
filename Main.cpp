@@ -101,7 +101,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	); // creation parameters 
 
 	hwndData = CreateWindow(
-		(LPCWSTR)L"edit",
+		(LPCWSTR)L"static",
 		L"NULL",
 		WS_CHILD | WS_THICKFRAME,
 		0,
@@ -139,7 +139,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 	static HANDLE hFile;
 	static HANDLE hFileMapping;
-	LPCWSTR cPath = (LPCWSTR)L"C:/Users/1metr/Downloads/68015000878_HC_enus_MTP850_FuG_Product_Information_Manual.pdf";
+	LPCWSTR cPath = (LPCWSTR)L"C:/Users/1metr/Downloads/Windows.iso";
 
 	RECT rectWnd, rectData;
 
@@ -178,24 +178,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 		qwFileSize += (((__int64)dwFileSizeHigh) << 32);
 		qwFileSizeConst = qwFileSize;
 
-		if (qwFileSize > 0)
-		{
-			dwBytesInBlock = sinf.dwAllocationGranularity;
-			if (qwFileSize < sinf.dwAllocationGranularity)
-			{
-				dwBytesInBlock = (DWORD)qwFileSize;
-			}
 
-			pbFile = (PBYTE)MapViewOfFile(
-				hFileMapping,
-				FILE_MAP_READ,
-				(DWORD)(qwFileOffset >> 32),
-				(DWORD)(qwFileOffset & 0xFFFFFFFF),
-				dwBytesInBlock);
+		pbFile = (PBYTE)MapViewOfFile(
+			hFileMapping,
+			FILE_MAP_READ,
+			0,
+			0,
+			0);
 
-			qwFileOffset += dwBytesInBlock;
-			qwFileSize -= dwBytesInBlock;
-		}
 
 		hdc = BeginPaint(hwnd, &ps);
 
@@ -404,78 +394,115 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 
 		iPaintBeg = max(0, iVscrollPos + ps.rcPaint.top / cyChar);
-		iPaintEnd = min(qwFileSizeConst - 1, iVscrollPos + ps.rcPaint.bottom / cyChar);
+		iPaintEnd = min(qwFileSizeConst / 16 - 1, iVscrollPos + ps.rcPaint.bottom / cyChar);
 
-		for (int x, y, i = iPaintBeg; i <= iPaintEnd; i++)
+		for (__int64 x, y, i = iPaintBeg; i <= iPaintEnd; i++)
 		{
-
 			x = cxChar * (1 - iHscrollPos);
 			y = cyChar * (i - iVscrollPos);
 
-			//SetTextAlign(hdc, TA_LEFT | TA_TOP);
+			dwByte = i * 16;
 			TextOut(hdc, x, y, szBuffer, wsprintf(szBuffer, L"%08X", dwByte));
 
-			for (int j = 0; (j < 16); j++)
+			for (int j = 0; j < 16; j++)
 			{
+				dwByte = i * 16 + j;
 				TextOut(hdc, 150 + x + j * cxChar * 3, y, szBuffer, wsprintf(szBuffer, L"%02X", pbFile[dwByte]));
-				dwByte++;
-
-				if ((dwByte >= dwBytesInBlock - 1) && (qwFileSize != 0))
-				{
-					UnmapViewOfFile(pbFile);
-
-					qwFileOffset += dwBytesInBlock;
-					qwFileSize -= dwBytesInBlock;
-
-					dwBytesInBlock = sinf.dwAllocationGranularity;
-					if (qwFileSize < sinf.dwAllocationGranularity)
-					{
-						dwBytesInBlock = (DWORD)qwFileSize;
-					}
-
-					pbFile = (PBYTE)MapViewOfFile(
-						hFileMapping,
-						FILE_MAP_READ,
-						(DWORD)(qwFileOffset >> 32),
-						(DWORD)(qwFileOffset & 0xFFFFFFFF),
-						dwBytesInBlock);
-
-					dwByte = 0;
-				}
-
 			}
-
-			if ((dwByte >= dwBytesInBlock - 1) && (qwFileSize != 0))
-			{
-				UnmapViewOfFile(pbFile);
-
-				qwFileOffset += dwBytesInBlock;
-				qwFileSize -= dwBytesInBlock;
-
-				dwBytesInBlock = sinf.dwAllocationGranularity;
-				if (qwFileSize < sinf.dwAllocationGranularity)
-				{
-					dwBytesInBlock = (DWORD)qwFileSize;
-				}
-
-				pbFile = (PBYTE)MapViewOfFile(
-					hFileMapping,
-					FILE_MAP_READ,
-					(DWORD)(qwFileOffset >> 32),
-					(DWORD)(qwFileOffset & 0xFFFFFFFF),
-					dwBytesInBlock);
-
-				dwByte = 0;
-			}
-
 		}
 
-		if ((qwFileSize != 0))
-		{
-			dwByte = iVscrollPos % dwBytesInBlock * 16;
 
-		}
+
 		EndPaint(hwnd, &ps);
+
+
+
+
+
+		////////hdc = BeginPaint(hwndData, &ps);
+
+		////////si.cbSize = sizeof(si);
+		////////si.fMask = SIF_POS;
+		////////GetScrollInfo(hwnd, SB_VERT, &si);
+		////////iVscrollPos = si.nPos;
+
+		////////GetScrollInfo(hwnd, SB_HORZ, &si);
+		////////iHscrollPos = si.nPos;
+
+
+		////////iPaintBeg = max(0, iVscrollPos + ps.rcPaint.top / cyChar);
+		////////iPaintEnd = min(qwFileSizeConst - 1, iVscrollPos + ps.rcPaint.bottom / cyChar);
+
+		////////for (int x, y, i = iPaintBeg; i <= iPaintEnd; i++)
+		////////{
+
+		////////	x = cxChar * (1 - iHscrollPos);
+		////////	y = cyChar * (i - iVscrollPos);
+
+		////////	//SetTextAlign(hdc, TA_LEFT | TA_TOP);
+		////////	TextOut(hdc, x, y, szBuffer, wsprintf(szBuffer, L"%08X", dwByte));
+
+		////////	for (int j = 0; (j < 16); j++)
+		////////	{
+		////////		TextOut(hdc, 150 + x + j * cxChar * 3, y, szBuffer, wsprintf(szBuffer, L"%02X", pbFile[dwByte]));
+		////////		dwByte++;
+
+		////////		if ((dwByte >= dwBytesInBlock - 1) && (qwFileSize != 0))
+		////////		{
+		////////			UnmapViewOfFile(pbFile);
+
+		////////			qwFileOffset += dwBytesInBlock;
+		////////			qwFileSize -= dwBytesInBlock;
+
+		////////			dwBytesInBlock = sinf.dwAllocationGranularity;
+		////////			if (qwFileSize < sinf.dwAllocationGranularity)
+		////////			{
+		////////				dwBytesInBlock = (DWORD)qwFileSize;
+		////////			}
+
+		////////			pbFile = (PBYTE)MapViewOfFile(
+		////////				hFileMapping,
+		////////				FILE_MAP_READ,
+		////////				(DWORD)(qwFileOffset >> 32),
+		////////				(DWORD)(qwFileOffset & 0xFFFFFFFF),
+		////////				dwBytesInBlock);
+
+		////////			dwByte = 0;
+		////////		}
+
+		////////	}
+
+		////////	if ((dwByte >= dwBytesInBlock - 1) && (qwFileSize != 0))
+		////////	{
+		////////		UnmapViewOfFile(pbFile);
+
+		////////		qwFileOffset += dwBytesInBlock;
+		////////		qwFileSize -= dwBytesInBlock;
+
+		////////		dwBytesInBlock = sinf.dwAllocationGranularity;
+		////////		if (qwFileSize < sinf.dwAllocationGranularity)
+		////////		{
+		////////			dwBytesInBlock = (DWORD)qwFileSize;
+		////////		}
+
+		////////		pbFile = (PBYTE)MapViewOfFile(
+		////////			hFileMapping,
+		////////			FILE_MAP_READ,
+		////////			(DWORD)(qwFileOffset >> 32),
+		////////			(DWORD)(qwFileOffset & 0xFFFFFFFF),
+		////////			dwBytesInBlock);
+
+		////////		dwByte = 0;
+		////////	}
+
+		////////}
+
+		////////if ((qwFileSize != 0))
+		////////{
+		////////	dwByte = iVscrollPos % dwBytesInBlock * 16;
+
+		////////}
+		////////EndPaint(hwnd, &ps);
 
 
 

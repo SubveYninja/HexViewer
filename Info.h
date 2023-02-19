@@ -9,8 +9,6 @@ static int iyStartupHeight = 500;
 
 static int ixStartupDataWidth = 600;
 
-const int TextBufferSize = 256;
-LPSTR Buffer[TextBufferSize];
 
 DWORD dwFileSizeHigh;
 DWORD dwBytesInBlock;
@@ -19,7 +17,7 @@ __int64 qwFileSize;
 __int64 qwFileSizeConst;
 __int64 qwFileOffset = 0;
 
-DWORD dwByte = 0;
+DWORD64 dwByte = 0;
 
 
 
